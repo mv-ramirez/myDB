@@ -108,6 +108,17 @@ python migrate_projectflow.py
 | Format SQL | Normalises keyword casing and line breaks |
 | Dark / light mode | 🌙 / ☀️ button in the top-right or `Ctrl+Shift+L` — persists to `localStorage`, falls back to OS preference |
 
+### Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+Enter` | Run query |
+| `Ctrl+Space` | Trigger SQL autocomplete |
+| `Ctrl+T` | New query tab |
+| `Ctrl+W` | Close current tab |
+| `Ctrl+Shift+L` | Toggle dark / light mode |
+| `Tab` | Indent (2 spaces) |
+
 ---
 
 ## REST API endpoints
