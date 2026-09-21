@@ -1,0 +1,122 @@
+// myDB SQL Grammar
+
+start: statement (";"? statement)* ";"?
+
+statement: query | insert_stmt | update_stmt | delete_stmt | create_table_stmt | drop_table_stmt | create_index_stmt | alter_table_stmt
+
+// UNION / INTERSECT / EXCEPT
+query: select_stmt (union_op select_stmt)*
+union_op: "UNION"i "ALL"i  -> union_all
+        | "UNION"i          -> union_distinct
+        | "INTERSECT"i      -> intersect_op
+        | "EXCEPT"i         -> except_op
+
+// SELECT
+select_stmt: "SELECT"i select_list ("FROM"i table_ref join_clause*)? where_clause? group_clause? having_clause? order_clause? limit_clause?
+
+select_list: STAR -> select_star | select_item ("," select_item)* -> select_cols
+select_item: expr ("AS"i NAME)?
+
+// table_ref: named table (optionally schema-qualified)  OR  inline subquery
+// AS is optional — both  `t AS a`  and  `t a`  are valid aliases
+table_ref: table_name_qual ("AS"i? NAME)?              -> table_name_ref
+         | "(" query ")" ("AS"i)? NAME                  -> subquery_ref
+
+table_name_qual: NAME ("." NAME)?
+
+join_clause: join_type "JOIN"i table_ref "ON"i expr
+join_type:   JOIN_DIR?
+JOIN_DIR:    /INNER/i | /LEFT/i | /RIGHT/i | /CROSS/i
+
+where_clause:  "WHERE"i  expr
+group_clause:  "GROUP"i "BY"i expr ("," expr)*
+having_clause: "HAVING"i expr
+order_clause:  "ORDER"i "BY"i order_item ("," order_item)*
+order_item:    expr ORDER_DIR?
+ORDER_DIR:     /ASC/i | /DESC/i
+limit_clause:  "LIMIT"i INTEGER ("OFFSET"i INTEGER)?
+
+// INSERT
+insert_stmt: "INSERT"i "INTO"i table_name_qual "(" NAME ("," NAME)* ")" "VALUES"i row_values ("," row_values)*
+row_values:  "(" literal ("," literal)* ")"
+
+// UPDATE
+update_stmt: "UPDATE"i table_name_qual "SET"i assignment ("," assignment)* where_clause?
+assignment:  NAME "=" expr
+
+// DELETE
+delete_stmt: "DELETE"i "FROM"i table_name_qual where_clause?
+
+// CREATE TABLE
+create_table_stmt: "CREATE"i "TABLE"i if_not_exists? table_name_qual "(" col_def ("," col_def)* ")"
+if_not_exists: "IF"i "NOT"i "EXISTS"i
+col_def:      NAME type_name col_constraint*
+type_name:    /[A-Za-z]+/ ("(" INTEGER ("," INTEGER)? ")")?
+col_constraint: "PRIMARY"i "KEY"i  -> pk_constraint
+              | "NOT"i "NULL"i      -> notnull_constraint
+              | "UNIQUE"i           -> unique_constraint
+              | "DEFAULT"i literal  -> default_constraint
+
+// DROP TABLE
+drop_table_stmt: "DROP"i "TABLE"i if_exists? table_name_qual
+if_exists: "IF"i "EXISTS"i
+
+// ALTER TABLE
+alter_table_stmt: "ALTER"i "TABLE"i table_name_qual alter_action
+alter_action: "ADD"i "COLUMN"i col_def              -> alter_add_col
+            | "DROP"i "COLUMN"i NAME                -> alter_drop_col
+            | "RENAME"i "COLUMN"i NAME "TO"i NAME   -> alter_rename_col
+            | "RENAME"i "TO"i table_name_qual        -> alter_rename_table
+
+// CREATE INDEX
+create_index_stmt: "CREATE"i "UNIQUE"i? "INDEX"i NAME "ON"i table_name_qual "(" NAME ("," NAME)* ")"
+
+// Expressions
+expr:         or_expr
+or_expr:      and_expr ("OR"i  and_expr)*
+and_expr:     not_expr ("AND"i not_expr)*
+not_expr:     NOT_KW compare_expr -> not_expr_op | compare_expr
+NOT_KW.2:    /NOT/i
+
+compare_expr: add_expr compare_op add_expr                                    -> binary_cmp
+            | add_expr "IS"i "NULL"i                                         -> is_null
+            | add_expr "IS"i "NOT"i "NULL"i                                  -> is_not_null
+            | add_expr "IN"i "(" literal ("," literal)* ")"                  -> in_expr
+            | add_expr "NOT"i "IN"i "(" literal ("," literal)* ")"           -> not_in_expr
+            | add_expr "IN"i "(" query ")"                                   -> in_subquery
+            | add_expr "NOT"i "IN"i "(" query ")"                            -> not_in_subquery
+            | "EXISTS"i "(" query ")"                                        -> exists_expr
+            | add_expr "LIKE"i STRING                                        -> like_expr
+            | add_expr "BETWEEN"i add_expr "AND"i add_expr                   -> between_expr
+            | add_expr
+
+compare_op: "=" -> eq | "!=" -> neq | "<>" -> neq | "<" -> lt | "<=" -> lte | ">" -> gt | ">=" -> gte
+
+add_expr: mul_expr (ADDOP mul_expr)*
+mul_expr: unary_expr (MULOP unary_expr)*
+
+unary_expr: MINUS primary -> negate | primary
+// scalar_subquery must precede paren_expr so (SELECT ...) isn't tried as an expr
+primary: "(" query ")"                     -> scalar_subquery
+       | "(" expr ")"                      -> paren_expr
+       | func_call
+       | NAME "." NAME                     -> col_ref_qualified
+       | NAME                              -> col_ref
+       | literal
+
+func_call: NAME "(" (expr ("," expr)* | STAR)? ")"
+
+literal: INTEGER -> int_lit | FLOAT -> float_lit | STRING -> str_lit | "TRUE"i -> true_lit | "FALSE"i -> false_lit | "NULL"i -> null_lit
+
+// Terminals
+STAR:    /\*/
+ADDOP:   /[+\-]/
+MULOP:   /[*\/%]/
+MINUS:   "-"
+NAME:    /[A-Za-z_][A-Za-z0-9_]*/
+INTEGER: /[0-9]+/
+FLOAT:   /[0-9]+\.[0-9]*([eE][+-]?[0-9]+)?/
+STRING:  /\'[^\']*\'/ | /\"[^\"]*\"/
+
+%ignore /\s+/
+%ignore /--[^\n]*/
