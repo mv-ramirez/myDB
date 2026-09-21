@@ -106,6 +106,7 @@ python migrate_projectflow.py
 | Copy CSV | Copies result set to clipboard as CSV |
 | Drag to editor | Drag a table name from the sidebar into the editor |
 | Format SQL | Normalises keyword casing and line breaks |
+| Dark / light mode | 🌙 / ☀️ button in the top-right — persists to `localStorage`, falls back to OS preference |
 
 ---
 
