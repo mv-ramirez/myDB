@@ -576,7 +576,7 @@
   <button class="pill pill-ghost" id="connectBtn" onclick="connect()">Connect</button>
   <div class="status-dot" id="statusDot" title="Disconnected"></div>
   <span id="statusLabel" style="font-size:11px;color:var(--muted)">Not connected</span>
-  <button class="pill pill-ghost" id="themeBtn" onclick="toggleTheme()" title="Toggle dark/light mode" style="margin-left:auto;font-size:15px;padding:4px 8px;">🌙</button>
+  <button class="pill pill-ghost" id="themeBtn" onclick="toggleTheme()" title="Toggle dark/light mode (Ctrl+Shift+L)" style="margin-left:auto;font-size:15px;padding:4px 8px;">🌙</button>
 </div>
 
 <div class="main">
@@ -1283,6 +1283,7 @@ function copyResults() {
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 't') { e.preventDefault(); addTab(); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'w') { e.preventDefault(); if (tabs.size > 1) closeTab(activeTabId); }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'L') { e.preventDefault(); toggleTheme(); }
 });
 
 document.getElementById('apiUrl').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
